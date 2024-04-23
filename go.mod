@@ -1,5 +1,5 @@
-module github.com/alum-challenges/alum-challenges-go
+module myproject
 
-go 1.21
+go 1.19
 
-require github.com/gorilla/mux v1.8.1
+require github.com/russross/blackfriday v1.6.0 // indirect

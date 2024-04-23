@@ -1,27 +1,18 @@
-//main.go
 package main
 
 import (
-    "fmt"
-    "html/template"
-    "net/http"
-    "github.com/gorilla/mux"
+	"net/http"
+	"github.com/russross/blackfriday"
 )
 
 
 func main() {
-    // Parse templates
-    tmpl := template.Must(template.ParseGlob("templates/*.html"))
-
-    // Router
-    router := mux.NewRouter()
-
-    router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        tmpl.ExecuteTemplate(w, "index.html", nil)
-    })
-    http.ListenAndServe(":8000", router)
+    http.HandleFunc("/markdown", GenerateMarkdown)
+    http.Handle("/", http.FileServer(http.Dir("templates")))
+    http.ListenAndServe(":8000", nil)
 }
 
-func handler (w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Hello World!")
+func GenerateMarkdown(rw http.ResponseWriter, r *http.Request) {
+    markdown := blackfriday.MarkdownCommon([]byte(r.FormValue("body")))
+    rw.Write(markdown)
 }
