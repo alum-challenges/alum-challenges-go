@@ -22,6 +22,7 @@ FROM gcr.io/distroless/base-debian11 AS run-stage
 WORKDIR /app
 COPY --from=build-stage /alum-challenges /alum-challenges
 COPY . .
+CMD ["tailwindcss-linux-x64" "-i" "static/input.css" "static/output.css" "--minify"]
 EXPOSE 8000
 
 USER nonroot:nonroot
