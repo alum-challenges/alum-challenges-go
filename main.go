@@ -9,7 +9,10 @@ import (
     "path/filepath"
     "strings"
     "github.com/gorilla/mux"
-    "github.com/russross/blackfriday"
+    "github.com/gomarkdown/markdown"
+	// "github.com/gomarkdown/markdown/ast"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 )
 
 type Stored_Html struct {
@@ -35,23 +38,25 @@ func main() {
         tmpl.ExecuteTemplate(w, "index.html", Lista)
     })
 
-    r.HandleFunc("/python/week-{week}/{filename}", func (w http.ResponseWriter, r *http.Request) {
+    r.HandleFunc("/courses/{course}/week-{week}/{filename}", func (w http.ResponseWriter, r *http.Request) {
         // get the weeks name from url
         vars := mux.Vars(r)
+        course := vars["course"]
         week := vars["week"]
         file_name := vars["filename"]
 
-        a := fmt.Sprintf("python/week-%s/%s/%s.md", week, file_name, file_name)
+        a := fmt.Sprintf("courses/%s/week-%s/%s/%s.md", course, week, file_name, file_name)
 
         data, err := os.ReadFile(a)
 
         if err != nil {
-            fmt.Println("Couldnt open the file")
+            fmt.Println(err)
             //! add to quit or something
         } 
             // translate the file into markdown
-        markdown := blackfriday.MarkdownCommon(data)
-
+        markdown := mdToHTML(data)
+        
+        // fmt.Println(markdown)
         x := template.HTML(string(markdown))
 
         // add the data to the slice
@@ -69,18 +74,32 @@ func main() {
 
 func file_names_slice() []string{
     temp := []string{}
-    filepath.WalkDir("python",func (path string, d fs.DirEntry, err error) error {
+    filepath.WalkDir("courses",func (path string, d fs.DirEntry, err error) error {
         if err != nil {
             return err
         }
 
         if d.IsDir() { // skip all directories
             count := strings.Count(path, "/")
-            if count >= 2{
+            if count == 3{
                 temp = append(temp, path)
             }
         }
         return nil
     })
     return temp
+}
+
+func mdToHTML(md []byte) []byte {
+	// create markdown parser with extensions
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse(md)
+
+	// create HTML renderer with extensions
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	return markdown.Render(doc, renderer)
 }
