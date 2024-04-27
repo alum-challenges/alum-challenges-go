@@ -10,7 +10,6 @@ import (
     "strings"
     "github.com/gorilla/mux"
     "github.com/gomarkdown/markdown"
-	// "github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 )
@@ -30,30 +29,26 @@ func main() {
 
     file_names := file_names_slice()
     r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
         Lista := Problems_List{
             List: file_names,
         }
-
         tmpl.ExecuteTemplate(w, "index.html", Lista)
     })
 
-    r.HandleFunc("/courses/{course}/week-{week}/{filename}", func (w http.ResponseWriter, r *http.Request) {
+    r.HandleFunc("/courses/{course}/week-{week}/{exercise}/", func (w http.ResponseWriter, r *http.Request) {
         // get the weeks name from url
         vars := mux.Vars(r)
-        course := vars["course"]
-        week := vars["week"]
-        file_name := vars["filename"]
+        course := filepath.Clean(vars["course"])
+        week := filepath.Clean(vars["week"])
+        exercise := filepath.Clean(vars["exercise"])
 
-        a := fmt.Sprintf("courses/%s/week-%s/%s/%s.md", course, week, file_name, file_name)
-
+        a := filepath.Join("courses", course, "week-" + week,exercise, exercise + ".md")
         data, err := os.ReadFile(a)
 
         if err != nil {
             fmt.Println(err)
-            //! add to quit or something
         } 
-            // translate the file into markdown
+        // translate the file into markdown
         markdown := mdToHTML(data)
         
         // fmt.Println(markdown)
@@ -66,7 +61,6 @@ func main() {
 
         // render the template
         tmpl.ExecuteTemplate(w, "layout.html", Datas)
-
     })
 
     http.ListenAndServe(":8000", r)
