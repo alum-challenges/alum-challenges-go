@@ -1,18 +1,22 @@
 package main
 
 import (
-    "fmt"
-    "html/template"
-    "io/fs"
-    "os"
-    "net/http"
-    "path/filepath"
-    "strings"
-    "github.com/gorilla/mux"
-    "github.com/gomarkdown/markdown"
+	"embed"
+	"fmt"
+	"html/template"
+	"io/fs"
+	"net/http"
+	// "os"
+	"path/filepath"
+	"strings"
+
+	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 )
+
+//go:embed courses
+var coursesFS embed.FS
 
 type Stored_Html struct {
     Html_data template.HTML
@@ -23,7 +27,7 @@ type Problems_List struct {
 }
 
 func main() {
-    r := mux.NewRouter()
+    r := http.NewServeMux()
 
     tmpl := template.Must(template.ParseGlob("static/*.html"))
 
@@ -35,15 +39,16 @@ func main() {
         tmpl.ExecuteTemplate(w, "index.html", Lista)
     })
 
-    r.HandleFunc("/courses/{course}/week-{week}/{exercise}/", func (w http.ResponseWriter, r *http.Request) {
-        // get the weeks name from url
-        vars := mux.Vars(r)
-        course := filepath.Clean(vars["course"])
-        week := filepath.Clean(vars["week"])
-        exercise := filepath.Clean(vars["exercise"])
+    r.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusGone) })
+    r.Handle("GET /courses/{course}/{week}/{exercise}/", http.FileServerFS(coursesFS))
 
-        a := filepath.Join("courses", course, "week-" + week,exercise, exercise + ".md")
-        data, err := os.ReadFile(a)
+    r.HandleFunc("GET /courses/{course}/{week}/{exercise}/{$}", func(w http.ResponseWriter, r *http.Request) {
+        course := r.PathValue("course")
+        week := r.PathValue("week")
+        exercise := r.PathValue("exercise")
+
+        a := filepath.Join("courses", course, week, exercise, exercise+".md")
+        data, err := coursesFS.ReadFile(a)
 
         if err != nil {
             fmt.Println(err)
